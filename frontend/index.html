@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>🎮 Multi-Agent Game Tester</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 900px;
+            margin: 30px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .form-group {
+            margin: 15px 0;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #555;
+        }
+
+        input {
+            width: 100%;
+            padding: 12px;
+            margin-bottom: 10px;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+
+        input:focus {
+            border-color: #007bff;
+            outline: none;
+        }
+
+        button {
+            background: #007bff;
+            color: white;
+            padding: 15px 30px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+        }
+
+        button:hover {
+            background: #0056b3;
+        }
+
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        .status-section {
+            margin-top: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 6px;
+            border-left: 4px solid #007bff;
+        }
+
+        .status-section h3 {
+            margin-top: 0;
+            color: #333;
+        }
+
+        .status-item {
+            margin: 10px 0;
+            padding: 10px;
+            background: white;
+            border-radius: 4px;
+        }
+
+        .logs-container {
+            background: #2d3748;
+            color: #e2e8f0;
+            padding: 20px;
+            border-radius: 8px;
+            font-family: monospace;
+            font-size: 14px;
+            max-height: 300px;
+            overflow-y: auto;
+            margin-top: 15px;
+        }
+
+        .report-section {
+            margin-top: 20px;
+        }
+
+        .metric {
+            display: inline-block;
+            margin: 10px 20px 10px 0;
+            padding: 15px;
+            background: #e9ecef;
+            border-radius: 6px;
+            text-align: center;
+            min-width: 120px;
+        }
+
+        .metric-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #007bff;
+        }
+
+        .metric-label {
+            font-size: 12px;
+            color: #666;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>🎮 Multi-Agent Game Tester</h1>
+
+        <form id="testForm">
+            <div class="form-group">
+                <label>🎯 Target Game URL:</label>
+                <input type="url" id="targetUrl" value="https://play.ezygamers.com" required>
+            </div>
+
+            <div class="form-group">
+                <label>🧪 Test Case Candidates:</label>
+                <input type="number" id="testCount" value="5" min="3" max="20" required>
+            </div>
+
+            <div class="form-group">
+                <label>🚀 Execute Top N Tests:</label>
+                <input type="number" id="executeCount" value="3" min="1" max="10" required>
+            </div>
+
+            <button type="submit" id="startBtn">🚀 Start Multi-Agent Testing</button>
+        </form>
+
+        <div id="statusSection" style="display: none;">
+            <div class="status-section">
+                <h3>📊 Execution Status</h3>
+                <div id="currentStatus" class="status-item">
+                    <strong>Status:</strong> <span id="statusText">Starting...</span><br>
+                    <strong>Message:</strong> <span id="statusMessage">Initializing agents...</span><br>
+                    <strong>Task ID:</strong> <span id="taskId">-</span>
+                </div>
+                <div class="logs-container" id="logs"></div>
+            </div>
+        </div>
+
+        <div id="reportSection" style="display: none;">
+            <div class="status-section">
+                <h3>📋 Test Report</h3>
+                <div class="report-section">
+                    <div class="metric">
+                        <div class="metric-value" id="totalCandidates">-</div>
+                        <div class="metric-label">Candidates Generated</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-value" id="executedTests">-</div>
+                        <div class="metric-label">Tests Executed</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-value" id="successRate">-</div>
+                        <div class="metric-label">Success Rate</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-value" id="artifactCount">-</div>
+                        <div class="metric-label">Artifacts</div>
+                    </div>
+                </div>
+                <button id="downloadBtn" onclick="downloadReport()">📄 Download Report</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentTaskId = null;
+        let statusInterval = null;
+        let currentReport = null;
+
+        console.log("🚀 JavaScript loaded successfully");
+
+        // Attach form submit event
+        document.getElementById('testForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            console.log("📝 Form submitted");
+            await startTest();
+        });
+
+        async function startTest() {
+            console.log("🎯 Starting test...");
+
+            const formData = {
+                target_url: document.getElementById('targetUrl').value,
+                test_count: parseInt(document.getElementById('testCount').value),
+                execute_top_n: parseInt(document.getElementById('executeCount').value)
+            };
+
+            console.log("📊 Form data:", formData);
+
+            // Show status section
+            document.getElementById('statusSection').style.display = 'block';
+            document.getElementById('reportSection').style.display = 'none';
+
+            // Disable form
+            const startBtn = document.getElementById('startBtn');
+            startBtn.disabled = true;
+            startBtn.textContent = '⏳ Starting...';
+
+            addLog('🚀 Starting multi-agent test execution...');
+
+            try {
+                addLog('📡 Sending request to /api/test/start...');
+
+                const response = await fetch('/api/test/start', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify(formData)
+                });
+
+                console.log("📨 Response status:", response.status);
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+
+                const result = await response.json();
+                console.log("📋 Response data:", result);
+
+                currentTaskId = result.task_id;
+                document.getElementById('taskId').textContent = result.task_id;
+                addLog(`✅ Test started successfully: ${result.task_id}`);
+
+                // Start polling for status
+                startStatusPolling();
+
+            } catch (error) {
+                console.error("❌ Error:", error);
+                addLog(`❌ Network error: ${error.message}`);
+                resetForm();
+            }
+        }
+
+        function startStatusPolling() {
+            addLog('🔄 Starting status polling...');
+
+            statusInterval = setInterval(async () => {
+                if (!currentTaskId) return;
+
+                try {
+                    const response = await fetch(`/api/test/status/${currentTaskId}`);
+
+                    if (response.ok) {
+                        const status = await response.json();
+                        console.log("📊 Status update:", status);
+                        updateStatus(status);
+
+                        if (status.status === 'completed') {
+                            addLog('🎉 Test execution completed!');
+                            clearInterval(statusInterval);
+                            await loadReport();
+                        } else if (status.status === 'failed') {
+                            addLog(`❌ Test execution failed: ${status.message}`);
+                            clearInterval(statusInterval);
+                            resetForm();
+                        }
+                    }
+                } catch (error) {
+                    console.error('Status polling error:', error);
+                }
+            }, 3000); // Poll every 3 seconds
+        }
+
+        function updateStatus(status) {
+            document.getElementById('statusText').textContent = status.status || 'running';
+            document.getElementById('statusMessage').textContent = status.message || 'Processing...';
+
+            addLog(`📌 ${status.status || 'running'}: ${status.message || 'Processing...'}`);
+        }
+
+        async function loadReport() {
+            if (!currentTaskId) return;
+
+            try {
+                addLog('📄 Loading test report...');
+                const response = await fetch(`/api/test/report/${currentTaskId}`);
+
+                if (response.ok) {
+                    const report = await response.json();
+                    console.log("📋 Report data:", report);
+                    currentReport = report;
+                    displayReport(report);
+                } else {
+                    addLog('⚠️ Report not ready yet, will retry...');
+                }
+            } catch (error) {
+                console.error("❌ Error loading report:", error);
+                addLog(`❌ Error loading report: ${error.message}`);
+            }
+        }
+
+        function displayReport(report) {
+            document.getElementById('totalCandidates').textContent = report.total_candidates || 0;
+            document.getElementById('executedTests').textContent = report.executed_tests || 0;
+            document.getElementById('successRate').textContent = `${((report.success_rate || 0) * 100).toFixed(1)}%`;
+            document.getElementById('artifactCount').textContent = (report.artifacts || []).length;
+
+            document.getElementById('reportSection').style.display = 'block';
+            resetForm();
+
+            addLog('✅ Report loaded successfully!');
+        }
+
+        function downloadReport() {
+            if (!currentReport) return;
+
+            const blob = new Blob([JSON.stringify(currentReport, null, 2)], {
+                type: 'application/json'
+            });
+
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `test-report-${currentTaskId}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        function addLog(message) {
+            const timestamp = new Date().toLocaleTimeString();
+            const logs = document.getElementById('logs');
+            logs.innerHTML += `[${timestamp}] ${message}\n`;
+            logs.scrollTop = logs.scrollHeight;
+            console.log(message);
+        }
+
+        function resetForm() {
+            const startBtn = document.getElementById('startBtn');
+            startBtn.disabled = false;
+            startBtn.textContent = '🚀 Start Multi-Agent Testing';
+        }
+
+        // Test that JavaScript is working
+        document.addEventListener('DOMContentLoaded', () => {
+            addLog('🎮 Multi-Agent Game Tester interface loaded');
+            console.log("✅ DOM loaded, JavaScript ready");
+        });
+    </script>
+</body>
+
+</html>

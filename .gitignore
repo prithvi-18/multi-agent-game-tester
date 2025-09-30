@@ -1,0 +1,32 @@
+# Virtual Environment
+venv/
+venvforgametest/
+__pycache__/
+*.pyc
+*.pyo
+
+# Environment Variables
+.env
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Generated files
+artifacts/
+reports/
+*.log
+
+# Python
+*.egg-info/
+build/
+dist/
+
+# Temporary files
+*.tmp
+*.temp
+00

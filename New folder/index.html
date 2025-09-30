@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>🎮 Multi-Agent Game Tester</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+        }
+
+        .form-group {
+            margin: 15px 0;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+
+        input {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+
+        button {
+            background: #007bff;
+            color: white;
+            padding: 15px 30px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+
+        button:hover {
+            background: #0056b3;
+        }
+
+        #result {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>🎮 Multi-Agent Game Tester</h1>
+
+    <form id="testForm">
+        <div class="form-group">
+            <label>Target Game URL:</label>
+            <input type="url" id="targetUrl" value="https://play.ezygamers.com" required>
+        </div>
+
+        <div class="form-group">
+            <label>Number of Test Candidates:</label>
+            <input type="number" id="testCount" value="20" min="5" max="50" required>
+        </div>
+
+        <div class="form-group">
+            <label>Execute Top N Tests:</label>
+            <input type="number" id="executeCount" value="10" min="1" max="25" required>
+        </div>
+
+        <button type="submit">🚀 Start Testing</button>
+    </form>
+
+    <div id="result" style="display: none;"></div>
+
+    <script>
+        document.getElementById('testForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const formData = {
+                target_url: document.getElementById('targetUrl').value,
+                test_count: parseInt(document.getElementById('testCount').value),
+                execute_top_n: parseInt(document.getElementById('executeCount').value)
+            };
+
+            document.getElementById('result').style.display = 'block';
+            document.getElementById('result').innerHTML = '⏳ Starting test execution...';
+
+            try {
+                const response = await fetch('/api/test/start', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(formData)
+                });
+
+                const result = await response.json();
+                document.getElementById('result').innerHTML = `
+                    <h3>✅ Test Started!</h3>
+                    <p><strong>Target:</strong> ${result.url}</p>
+                    <p><strong>Test Count:</strong> ${result.tests}</p>
+                    <p><strong>Message:</strong> ${result.message}</p>
+                `;
+            } catch (error) {
+                document.getElementById('result').innerHTML = `❌ Error: ${error.message}`;
+            }
+        });
+    </script>
+</body>
+
+</html>
